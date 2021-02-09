@@ -5,10 +5,11 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.zydemo2.fastclick.HandleDoubleClick;
-import com.example.zydemo2.injectview.InjectViewUtils;
+import com.example.zydemo2.utils.PermissionsUtil;
 
 /**
  * @author 18964
@@ -20,16 +21,9 @@ public abstract class BaseActivity extends AppCompatActivity implements View.OnC
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(loadContentView());
-        InjectViewUtils.init(this);
         initView();
+        PermissionsUtil.getInstance().init(this);
     }
-
-    /**
-     * 设置资源文件
-     * @return 资源文件
-     */
-    abstract int loadContentView();
 
     abstract void initView();
 
@@ -52,6 +46,11 @@ public abstract class BaseActivity extends AppCompatActivity implements View.OnC
     @HandleDoubleClick()
     public void onClick(View v) {
         log("点击事件触发");
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     public void log(String msg){

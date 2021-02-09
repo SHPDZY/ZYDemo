@@ -1,9 +1,11 @@
 package com.example.zydemo2.injectview;
 
+import android.app.Activity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
-import com.example.zydemo2.BaseActivity;
+import androidx.fragment.app.Fragment;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -21,7 +23,7 @@ public class InjectViewAspect {
 
     private final String TAG = this.getClass().getSimpleName();
 
-    @Pointcut("execution(* com.example.zydemo2.injectview.InjectViewUtils.init(..))")
+    @Pointcut("execution(* com.example.zydemo2.BaseActivity.initView(..))")
     public void onInjectView() {
 
     }
@@ -34,42 +36,74 @@ public class InjectViewAspect {
 
     /**
      * 遍历类变量，获取变量注解
+     *
      * @param joinPoint
      */
     private void traversalsField(ProceedingJoinPoint joinPoint) {
-        Log.e(TAG,"traversalsField "+joinPoint.toShortString());
-        //获取类所有属性，包括public，private，protected
-        BaseActivity activity = (BaseActivity) joinPoint.getArgs()[0];
-        Field[] fields = activity.getClass().getDeclaredFields();
-        if (null != fields && fields.length > 0) {
-            for (Field field : fields) {
-                //判断属性注解是否属于自定义注解接口
-                if (field.isAnnotationPresent(InjectView.class)) {
-                    //获取变量注解类型
-                    InjectView injectView = field.getAnnotation(InjectView.class);
-                    //得到设置的ID
-                    int id = injectView.id();
-                    //如果获取的ID不等于默认ID，则通过findViewById来查找出对象然后设置变量值
-                    if (id != InjectView.DEFAULT_ID) {
-                        try {
+        try {
+            Activity activity = null;
+            Log.e(TAG, "traversalsField " + joinPoint.toShortString());
+            //获取类所有属性，包括public，private，protected
+            Object object = joinPoint.getThis();
+            if (object instanceof Activity) {
+                activity = (Activity) object;
+            } else if (object instanceof Fragment) {
+                activity = ((Fragment) object).getActivity();
+            } else if (object instanceof android.app.Fragment) {
+                activity = ((android.app.Fragment) object).getActivity();
+            }
+            if (activity == null) {
+                Log.e(TAG, "traversalsField activity is null");
+                return;
+            }
+            Class<? extends Activity> aClass = activity.getClass();
+            if (!aClass.isAnnotationPresent(ContentView.class)) {
+                Log.e(TAG, "未设置ContentView");
+                Toast.makeText(activity, "未设置ContentView", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            ContentView contentView = aClass.getAnnotation(ContentView.class);
+            int layoutRsId = contentView.value();
+            Method setContentView = aClass.getMethod("setContentView", int.class);
+            setContentView.invoke(activity, layoutRsId);
+            Field[] fields = aClass.getDeclaredFields();
+            if (fields.length > 0) {
+                for (Field field : fields) {
+                    //判断属性注解是否属于自定义注解接口
+                    if (field.isAnnotationPresent(InjectView.class)) {
+                        //获取变量注解类型
+                        InjectView injectView = field.getAnnotation(InjectView.class);
+                        //得到设置的ID
+                        int id = injectView.id();
+                        //如果获取的ID不等于默认ID，则通过findViewById来查找出对象然后设置变量值
+                        if (id != InjectView.DEFAULT_ID) {
                             //类中的成员变量为private,故必须进行此操作
                             field.setAccessible(true);
                             field.set(activity, activity.findViewById(id));
-                        } catch (IllegalArgumentException e) {
-                            e.printStackTrace();
-                        } catch (IllegalAccessException e) {
-                            e.printStackTrace();
                         }
-                    }
-                    //得到设置方法名
-                    String method = injectView.click();
-                    if (!method.equals(InjectView.DEFAULT_METHOD)) {
-                        setViewClickListener(activity, field, method);
+                        //将属性转成Object类型
+                        View view = null;
+                        //判断Object类型是否是view的实例，如果是强转成view并设置点击事件
+                        if (field.get(activity) instanceof View) {
+                            view = (View) field.get(activity);
+                        }
+                        if (view != null) {
+                            boolean clickable = injectView.clickable();
+                            view.setClickable(clickable);
+                            boolean hasClick = injectView.hasClick();
+                            if (hasClick && clickable) {
+                                //得到设置方法名
+                                String method = injectView.click();
+                                if (!method.equals(InjectView.DEFAULT_METHOD)) {
+                                    setViewClickListener(view, activity, method);
+                                } else if (activity instanceof View.OnClickListener) {
+                                    setViewClickListener(view, activity);
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }
-        try {
             joinPoint.proceed();
         } catch (Throwable throwable) {
             throwable.printStackTrace();
@@ -79,24 +113,24 @@ public class InjectViewAspect {
     /**
      * 给View设置点击事件
      *
+     * @param view
      * @param injectedSource 类对象
-     * @param field          属性
-     * @param clickMethod    方法名
      */
-    private void setViewClickListener(Object injectedSource, Field field, String clickMethod) {
-        try {
-            //将属性转成Object类型
-            Object obj = field.get(injectedSource);
-            //判断Object类型是否是view的实例，如果是强转成view并设置点击事件
-            if (obj instanceof View) {
-                ((View) obj).setOnClickListener(new EventListener(injectedSource).click(clickMethod));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    private void setViewClickListener(View view, Object injectedSource) {
+        view.setOnClickListener((View.OnClickListener) injectedSource);
     }
 
-    class EventListener implements View.OnClickListener {
+    /**
+     * 给View设置点击事件
+     *
+     * @param injectedSource 类对象
+     * @param method         方法名
+     */
+    private void setViewClickListener(View view, Activity injectedSource, String method) {
+        view.setOnClickListener(new EventListener(injectedSource).click(method));
+    }
+
+    static class EventListener implements View.OnClickListener {
 
         /**
          * 类对象

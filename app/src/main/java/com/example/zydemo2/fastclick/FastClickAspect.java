@@ -5,8 +5,11 @@ import android.view.View;
 
 import androidx.annotation.IdRes;
 
+import com.example.zydemo2.utils.PermissionsUtil;
+
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.After;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
@@ -16,18 +19,7 @@ import org.aspectj.lang.annotation.Pointcut;
  * 定义切面
  */
 @Aspect
-public class TraceAspect {
-
-    @Pointcut("execution(* com.example.zydemo2.BaseActivity.on*(..))")
-    public void onLifecycleLog() {
-
-    }
-
-    @Before("onLifecycleLog()")
-    public void handleLifecycleLog(JoinPoint joinPoint) {
-        String name = joinPoint.getSignature().getName();
-        Log.e(TAG, name + "----->>>>>" + joinPoint);
-    }
+public class FastClickAspect {
 
     private final String TAG = this.getClass().getSimpleName();
     /**
@@ -35,23 +27,19 @@ public class TraceAspect {
      */
     private static Long sLastclick = 0L;
     /**
-     * 拦截所有两次点击时间间隔小于一秒的点击事件
-     */
-    private static final Long FILTER_TIMEM = 1000L;
-    /**
      * 上次点击事件View
      */
     @IdRes
     private int mLastViewId;
 
-    @Pointcut("execution(@ com.example.zydemo2.fastclick.HandleDoubleClick * *(..))")
-    public void onHandleDoubleClick() {
+    @Pointcut("execution(@com.example.zydemo2.fastclick.HandleDoubleClick * *(..)) && @annotation(doubleClick)")
+    public void onHandleDoubleClick(HandleDoubleClick doubleClick) {
 
     }
 
-    @Around("onHandleDoubleClick()")
-    public void handleDoubleClick(ProceedingJoinPoint joinPoint) {
-        if (System.currentTimeMillis() - sLastclick >= FILTER_TIMEM) {
+    @Around("onHandleDoubleClick(doubleClick)")
+    public void handleDoubleClick(ProceedingJoinPoint joinPoint,HandleDoubleClick doubleClick) {
+        if (System.currentTimeMillis() - sLastclick >= doubleClick.value()) {
             doClick(joinPoint);
         } else {
             if (mLastViewId != ((View)joinPoint.getArgs()[0]).getId()) {
