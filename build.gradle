@@ -4,11 +4,15 @@ buildscript {
         google()
         jcenter()
         maven { url 'https://maven.aliyun.com/repository/public' }
+        maven{
+            url uri('C:/Repo')
+        }
     }
     dependencies {
         classpath "com.android.tools.build:gradle:4.0.1"
         classpath 'org.aspectj:aspectjtools:1.8.10'
         classpath 'org.aspectj:aspectjweaver:1.8.8'
+        classpath 'com.example.testplugin:asm.plugin:1.0.0'
     }
 }
 
@@ -17,6 +21,9 @@ allprojects {
         google()
         jcenter()
         maven { url 'https://maven.aliyun.com/repository/public' }
+        maven{
+            url uri('C:/Repo')
+        }
     }
 }
 
