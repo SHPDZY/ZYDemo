@@ -20,7 +20,7 @@ uploadArchives {
             pom.artifactId = 'asm.plugin'
             pom.version = '1.0.0'
             //生成的插件存放地址
-            repository(url: uri('C:/Repo'))
+            repository(url: uri("${rootDir.absolutePath}/Repo"))
         }
     }
 }

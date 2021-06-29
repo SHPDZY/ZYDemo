@@ -5,7 +5,7 @@ buildscript {
         jcenter()
         maven { url 'https://maven.aliyun.com/repository/public' }
         maven{
-            url uri('C:/Repo')
+            url uri("${rootDir.absolutePath}/Repo")
         }
     }
     dependencies {
@@ -22,7 +22,7 @@ allprojects {
         jcenter()
         maven { url 'https://maven.aliyun.com/repository/public' }
         maven{
-            url uri('C:/Repo')
+            url uri("${rootDir.absolutePath}/Repo")
         }
     }
 }
